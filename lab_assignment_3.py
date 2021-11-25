@@ -35,10 +35,20 @@ def decrypt(key, iv, ciphertext):
 
 
 def parent(index):
+    """
+    Calculates the paren of a node.
+    :param index: Index of the desired node.
+    :return: Index of the parent's node.
+    """
     return int(index / 2)
 
 
 def sibling(index):
+    """
+    Calculates the sibling of a node.
+    :param index: Index of the desired node.
+    :return: Index of the sibling of the input node.
+    """
     if index % 2 == 0:
         return index + 1
     else:
@@ -46,6 +56,12 @@ def sibling(index):
 
 
 def siblings_list(node, toret):
+    """
+    Method to obtain the minimum cover (recursive siblings) of a node.
+    :param node: Desired node.
+    :param toret: Auxiliary list to append the nodes recursively.
+    :return: A list with the index of the nodes of the cover.
+    """
     toret.append(sibling(node))
     if parent(node) == 1:
         toret.append(parent(node))
@@ -57,10 +73,9 @@ def siblings_list(node, toret):
 def encrypt_without_compromised_nodes(random_key, root_key, content):
     """
     Encrypt without compromised nodes in the tree for visualize the content.
-    :param random_key:
-    :param root_key:
-    :param content:
-    :return:
+    :param random_key: General key
+    :param root_key: Key of node 1
+    :param content: Content to encrypt
     """
     iv_key, encrypted_key = encrypt(root_key, random_key)
     content_with_padding = bytes.ljust(content.encode(), 16, b'\0')
@@ -75,6 +90,11 @@ def encrypt_without_compromised_nodes(random_key, root_key, content):
 
 
 def simplified_aacs(message_to_encode, set_of_devices):
+    """
+    Simulates the AACS standard.
+    :param message_to_encode: Desired content to encrypt.
+    :param set_of_devices: Binary tree of devices (nodes).
+    """
     key_devices = {}
     # Generate a key for each device
     for d in set_of_devices:
@@ -97,11 +117,11 @@ def simplified_aacs(message_to_encode, set_of_devices):
 
     # access_device = 11
     access_device = int(input('Select the access device --> '))
-    # Cobertura minima con la que tenemos que volver a cifrar el contenido
+    # Minimum cover used to re-encrypt the content and header
     cover = list(reversed(siblings_list(compromised_device, [])))
 
     # For every node u in a cover of S, compute cu ← E(ku, k)
-    # Ciframos la clave general con la clave de cada nodo de la cobertura
+    # Encrypt the general key with each node key of the cover
     for c in cover:
         iv_devices[c], encrypted_key_devices[c] = encrypt(key_devices[c], random_key)
         output.append(encrypted_key_devices[c])
@@ -112,15 +132,15 @@ def simplified_aacs(message_to_encode, set_of_devices):
     iv_content, encrypted_content = encrypt(random_key, message_bytes)
     # output.append(encrypted_content)
 
-    # Aplicar operaciones de cifrado/descifrado y comprobar con cada cabecera
-    if cover.__contains__(access_device):
+    # Apply encrypt/decrypt operations to verify with each key in the header
+    try:
         for encrypted_header in output:
             decrypted_key = decrypt(key_devices[access_device], iv_devices[access_device], encrypted_header)
             decrypted_content = decrypt(decrypted_key, iv_content, encrypted_content)
             if decrypted_content == message_bytes:
                 print('Access allowed with device ' + str(access_device))
                 print('Decrypted content: ' + str(decrypted_content))
-    else:
+    except Exception:
         print('Access denied with device ' + str(access_device) + ', the key is compromised!')
 
 
